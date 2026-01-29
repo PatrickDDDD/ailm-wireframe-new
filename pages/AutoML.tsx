@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Package, CheckCircle2, TrendingUp, ArrowRight, UploadCloud, 
   FileSpreadsheet, AlertTriangle, Eraser, Play, Loader2, Check, ArrowLeft, Sparkles, Trophy,
-  BarChart3, PieChart, Activity, X, FileText, Cpu, Layers
+  BarChart3, PieChart, Activity, X, FileText, Cpu, Layers, Target, MousePointerClick
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 
 // --- Types & Constants ---
-type WorkflowStage = 'UPLOAD' | 'CLEANING' | 'SELECTION' | 'TRAINING' | 'RESULT';
+type WorkflowStage = 'UPLOAD' | 'CLEANING' | 'TARGET_SETTING' | 'SELECTION' | 'TRAINING' | 'RESULT';
 
 const AVAILABLE_MODELS = [
   { id: 'xgboost', name: 'XGBoost', type: 'Ensemble', recommended: true },
@@ -19,6 +19,13 @@ const AVAILABLE_MODELS = [
   { id: 'rf', name: 'Random Forest', type: 'Bagging', recommended: false },
   { id: 'linear', name: 'Linear Regression', type: 'Linear', recommended: false },
   { id: 'mlp', name: 'MLP Neural Net', type: 'Deep Learning', recommended: false },
+];
+
+// Mock Columns from the uploaded file
+const MOCK_COLUMNS = [
+    'Transaction_ID', 'Date', 'Region_Code', 'Product_Category', 
+    'Sales_Amount', 'Units_Sold', 'Discount_Rate', 
+    'Competitor_Price', 'Holiday_Flag', 'Temperature', 'Inventory_Level'
 ];
 
 interface ModelResult {
@@ -190,6 +197,11 @@ export const AutoML: React.FC = () => {
   const [error, setError] = useState('');
   const [isCleaning, setIsCleaning] = useState(false);
   const [dataCleaned, setDataCleaned] = useState(false);
+  
+  // Target Selection State
+  const [targetColumn, setTargetColumn] = useState<string | null>('Sales_Amount'); // Default for demo
+  const [ignoredColumns, setIgnoredColumns] = useState<string[]>(['Transaction_ID']);
+
   const [selectedModels, setSelectedModels] = useState<string[]>(['xgboost', 'lightgbm']);
   const [trainingProgress, setTrainingProgress] = useState(0);
   
@@ -227,6 +239,26 @@ export const AutoML: React.FC = () => {
           setIsCleaning(false);
           setDataCleaned(true);
       }, 1500);
+  };
+
+  const handleColumnClick = (col: string) => {
+    // If clicking the current target, deselect it? No, must have a target.
+    // If clicking an ignored column, make it target?
+    if (ignoredColumns.includes(col)) {
+        setIgnoredColumns(prev => prev.filter(c => c !== col));
+    }
+    setTargetColumn(col);
+  };
+
+  const toggleIgnoreColumn = (e: React.MouseEvent, col: string) => {
+      e.stopPropagation();
+      if (col === targetColumn) return; // Cannot ignore target
+      
+      if (ignoredColumns.includes(col)) {
+          setIgnoredColumns(prev => prev.filter(c => c !== col));
+      } else {
+          setIgnoredColumns(prev => [...prev, col]);
+      }
   };
 
   const toggleModel = (id: string) => {
@@ -330,19 +362,20 @@ export const AutoML: React.FC = () => {
       const steps: {id: WorkflowStage, label: string}[] = [
           { id: 'UPLOAD', label: '上传数据' },
           { id: 'CLEANING', label: '数据清洗' },
+          { id: 'TARGET_SETTING', label: '目标设定' },
           { id: 'SELECTION', label: '选择模型' },
           { id: 'TRAINING', label: '建模中' },
           { id: 'RESULT', label: '模型结果' }
       ];
 
       return (
-          <div className="flex justify-between items-center mb-8 border-b-2 border-black pb-6 px-4">
+          <div className="flex justify-between items-center mb-8 border-b-2 border-black pb-6 px-4 overflow-x-auto">
               {steps.map((s, idx) => {
                   const isCurrent = s.id === stage;
                   const isPast = steps.findIndex(step => step.id === stage) > idx;
                   
                   return (
-                      <div key={s.id} className="flex flex-col items-center relative z-10 w-24">
+                      <div key={s.id} className="flex flex-col items-center relative z-10 w-24 shrink-0">
                           <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center mb-2 font-bold text-xs transition-colors
                               ${isCurrent ? 'bg-black text-white border-black' : ''}
                               ${isPast ? 'bg-gray-200 border-black text-black' : ''}
@@ -350,7 +383,7 @@ export const AutoML: React.FC = () => {
                           `}>
                               {isPast ? <Check className="w-4 h-4" /> : idx + 1}
                           </div>
-                          <span className={`text-xs font-bold uppercase ${isCurrent || isPast ? 'text-black' : 'text-gray-300'}`}>{s.label}</span>
+                          <span className={`text-xs font-bold uppercase text-center ${isCurrent || isPast ? 'text-black' : 'text-gray-300'}`}>{s.label}</span>
                       </div>
                   )
               })}
@@ -473,13 +506,109 @@ export const AutoML: React.FC = () => {
                           </button>
                       ) : (
                           <button 
-                             onClick={() => setStage('SELECTION')}
+                             onClick={() => setStage('TARGET_SETTING')}
                              className="flex items-center gap-2 bg-black text-white border-2 border-black px-8 py-3 font-bold uppercase hover:bg-white hover:text-black transition-colors"
                           >
-                              下一步: 模型选择
+                              下一步: 设定目标 (Target)
                               <ArrowRight className="w-4 h-4" />
                           </button>
                       )}
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
+  // --- VIEW: TARGET SETTING ---
+  if (stage === 'TARGET_SETTING') {
+      return (
+          <div className="p-8 max-w-4xl mx-auto">
+              {renderBackButton()}
+              {renderStepper()}
+              <div className="bg-white border-2 border-black p-8">
+                  <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <h2 className="text-2xl font-black uppercase mb-2">步骤 3: 目标与特征设定</h2>
+                        <p className="text-gray-600 font-mono text-sm">
+                            请选择 <span className="font-bold text-black">1 个目标列 (Target/Label)</span> 作为预测对象。
+                            <br/>其他列将自动作为特征 (Features)。你可以点击右侧图标忽略无关列。
+                        </p>
+                      </div>
+                      <div className="flex gap-2 text-xs font-bold uppercase">
+                          <div className="flex items-center gap-1 px-2 py-1 bg-black text-white border border-black">
+                              <Target className="w-3 h-3" /> Target (Y)
+                          </div>
+                          <div className="flex items-center gap-1 px-2 py-1 bg-white text-black border border-black">
+                              <Layers className="w-3 h-3" /> Feature (X)
+                          </div>
+                          <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-400 border border-gray-200">
+                              <X className="w-3 h-3" /> Ignored
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+                      {MOCK_COLUMNS.map((col) => {
+                          const isTarget = col === targetColumn;
+                          const isIgnored = ignoredColumns.includes(col);
+                          
+                          return (
+                              <div 
+                                key={col}
+                                onClick={() => handleColumnClick(col)}
+                                className={`
+                                    relative p-4 border-2 cursor-pointer transition-all flex items-center justify-between group
+                                    ${isTarget 
+                                        ? 'border-black bg-black text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]' 
+                                        : isIgnored 
+                                            ? 'border-gray-200 bg-gray-50 text-gray-400' 
+                                            : 'border-black bg-white text-black hover:bg-gray-50'
+                                    }
+                                `}
+                              >
+                                  <div className="flex items-center gap-2 overflow-hidden">
+                                      {isTarget ? <Target className="w-4 h-4 shrink-0" /> : <Layers className="w-4 h-4 shrink-0" />}
+                                      <span className="font-bold text-xs truncate" title={col}>{col}</span>
+                                  </div>
+
+                                  {!isTarget && (
+                                      <button 
+                                        onClick={(e) => toggleIgnoreColumn(e, col)}
+                                        className={`p-1 hover:bg-gray-200 rounded-full ${isIgnored ? 'bg-gray-200 text-gray-600' : 'opacity-0 group-hover:opacity-100 text-gray-400'}`}
+                                        title={isIgnored ? "Include Feature" : "Ignore Feature"}
+                                      >
+                                          {isIgnored ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                      </button>
+                                  )}
+                              </div>
+                          );
+                      })}
+                  </div>
+
+                  <div className="bg-gray-50 border border-black p-4 mb-8 flex justify-between items-center">
+                      <div>
+                          <p className="text-xs font-bold uppercase text-gray-500">当前任务配置</p>
+                          <p className="text-sm font-bold mt-1">
+                              预测目标: <span className="bg-black text-white px-1">{targetColumn}</span>
+                          </p>
+                      </div>
+                      <div className="text-right">
+                           <p className="text-xs font-bold uppercase text-gray-500">特征维度</p>
+                           <p className="text-sm font-bold mt-1">
+                               {MOCK_COLUMNS.length - 1 - ignoredColumns.length} Features
+                           </p>
+                      </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                      <button 
+                         onClick={() => setStage('SELECTION')}
+                         disabled={!targetColumn}
+                         className="flex items-center gap-2 bg-black text-white border-2 border-black px-8 py-3 font-bold uppercase hover:bg-white hover:text-black transition-colors disabled:opacity-50"
+                      >
+                          下一步: 算法选择
+                          <ArrowRight className="w-4 h-4" />
+                      </button>
                   </div>
               </div>
           </div>
@@ -493,7 +622,7 @@ export const AutoML: React.FC = () => {
               {renderBackButton()}
               {renderStepper()}
               <div className="bg-white border-2 border-black p-8">
-                  <h2 className="text-2xl font-black uppercase mb-2">步骤 3: 选择算法</h2>
+                  <h2 className="text-2xl font-black uppercase mb-2">步骤 4: 选择算法</h2>
                   <p className="text-gray-600 font-mono text-sm mb-6">AutoML 将并行训练选中的模型并进行超参数调优。</p>
                   <div className="space-y-3 mb-8">
                       {AVAILABLE_MODELS.map(model => (
@@ -552,6 +681,7 @@ export const AutoML: React.FC = () => {
                    <div className="bg-gray-50 border border-black p-4 font-mono text-xs text-left h-48 overflow-y-auto space-y-2">
                        <p>&gt; Initializing AutoML engine...</p>
                        <p>&gt; Loading dataset (12,450 rows)...</p>
+                       <p>&gt; Target Variable: [{targetColumn}]</p>
                        {trainingProgress > 10 && <p>&gt; [System] Starting parallel training on selected models...</p>}
                        {trainingProgress > 30 && <p>&gt; [Training] Cross-validation fold 2/5 complete...</p>}
                        {trainingProgress > 50 && <p>&gt; [Tuning] Hyperparameter optimization in progress...</p>}
