@@ -14,7 +14,12 @@ export const AIStudio: React.FC = () => {
   // Retrieve state passed from Dashboard or NewProject
   const projectState = location.state || {};
   const projectName = projectState.projectName || '未命名 Dify 项目';
-  const projectUrl = projectState.projectUrl || 'https://udify.app/chat/placeholder';
+  
+  // Specific URLs requested for the demo
+  const projectUrl = 'http://127.0.0.1/chat/q3tbxo2KIuZz9OqT';
+  const consoleUrl = 'http://127.0.0.1/apps';
+  const datasetsUrl = 'http://127.0.0.1/datasets';
+
   // Mock description if not passed, or use a default
   const description = projectState.description || '该项目旨在通过集成企业私有知识库，构建专业的垂直领域问答助手。';
   const subProjectName = projectState.subProjectName || '默认知识库';
@@ -79,9 +84,14 @@ export const AIStudio: React.FC = () => {
                             <Database className="w-5 h-5" />
                             <h2 className="font-bold text-lg uppercase">关联知识库 (RAG)</h2>
                         </div>
-                        <button className="text-xs font-bold underline hover:bg-black hover:text-white px-2 py-1 transition-colors">
-                            管理知识库
-                        </button>
+                        <a 
+                            href={datasetsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-bold underline hover:bg-black hover:text-white px-2 py-1 transition-colors flex items-center gap-1"
+                        >
+                            前往 Dify 管理知识库 <ExternalLink className="w-3 h-3" />
+                        </a>
                     </div>
                     
                     <div className="bg-gray-50 border border-black p-4 flex items-center justify-between">
@@ -100,9 +110,17 @@ export const AIStudio: React.FC = () => {
                         </div>
                     </div>
                     
-                    <div className="mt-4 p-4 border border-black border-dashed text-center hover:bg-gray-50 cursor-pointer transition-colors">
-                        <p className="text-xs font-bold text-gray-500">+ 添加额外数据集 / 知识库</p>
-                    </div>
+                    <a 
+                        href={datasetsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 p-4 border border-black border-dashed text-center hover:bg-gray-50 cursor-pointer transition-colors block"
+                    >
+                        <p className="text-xs font-bold text-gray-500 flex items-center justify-center gap-2">
+                            <ExternalLink className="w-3 h-3" />
+                            在 Dify 后台添加更多数据集
+                        </p>
+                    </a>
                 </div>
 
                 {/* 3. Model Configuration */}
@@ -179,9 +197,14 @@ export const AIStudio: React.FC = () => {
                             <ExternalLink className="w-4 h-4 inline mr-2" />
                             启动对话 WebApp
                         </a>
-                        <button className="block w-full text-center border-2 border-white text-white font-bold py-3 hover:bg-white hover:text-black transition-colors uppercase text-sm">
+                        <a 
+                            href={consoleUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full text-center border-2 border-white text-white font-bold py-3 hover:bg-white hover:text-black transition-colors uppercase text-sm"
+                        >
                             前往 Dify 后台编排
-                        </button>
+                        </a>
                     </div>
                 </div>
 
