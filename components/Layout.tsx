@@ -8,7 +8,9 @@ import {
   BrainCircuit, 
   Bot, 
   Menu,
-  X
+  X,
+  Database,
+  Shield // Imported Shield icon for permissions
 } from 'lucide-react';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -16,10 +18,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  const navItems = [
+  // Define base nav items
+  const baseNavItems = [
     { label: '项目仪表盘', path: '/dashboard', icon: LayoutDashboard },
+    { label: '数据空间', path: '/data-space', icon: Database },
     { label: '新建项目', path: '/new-project', icon: PlusCircle },
   ];
+
+  // Add Permissions only if user is admin
+  const navItems = user?.email === 'admin@admin.com' 
+    ? [...baseNavItems, { label: '权限管控', path: '/permissions', icon: Shield }]
+    : baseNavItems;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -70,7 +79,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-bold truncate">{user?.email}</p>
-              <p className="text-xs text-gray-500 uppercase">管理员</p>
+              <p className="text-xs text-gray-500 uppercase">{user?.email === 'admin@admin.com' ? '超级管理员' : '普通用户'}</p>
             </div>
           </div>
           <button 

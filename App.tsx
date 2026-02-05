@@ -7,6 +7,8 @@ import { Dashboard } from './pages/Dashboard';
 import { NewProject } from './pages/NewProject';
 import { AutoML } from './pages/AutoML';
 import { AIStudio } from './pages/AIStudio';
+import { DataSpace } from './pages/DataSpace';
+import { Permissions } from './pages/Permissions';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useApp();
@@ -17,6 +19,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   return <Layout>{children}</Layout>;
 };
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useApp();
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user.email !== 'admin@admin.com') {
+     return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Layout>{children}</Layout>;
+};
+
 
 const AppRoutes: React.FC = () => {
     return (
@@ -29,6 +46,18 @@ const AppRoutes: React.FC = () => {
                 </ProtectedRoute>
             } />
             
+            <Route path="/data-space" element={
+                <ProtectedRoute>
+                    <DataSpace />
+                </ProtectedRoute>
+            } />
+            
+            <Route path="/permissions" element={
+                <AdminRoute>
+                    <Permissions />
+                </AdminRoute>
+            } />
+
             <Route path="/new-project" element={
                 <ProtectedRoute>
                     <NewProject />
