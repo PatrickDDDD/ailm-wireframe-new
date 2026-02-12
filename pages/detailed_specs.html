@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiLM 详细实施手册 (Implementation Specs V4.1)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+        .ui-snapshot {
+            border: 2px solid #000;
+            background: #fff;
+            padding: 1rem;
+            position: relative;
+            box-shadow: 8px 8px 0px 0px rgba(0,0,0,0.1);
+        }
+        .ui-snapshot::before {
+            content: "UI SNAPSHOT";
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #000;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 8px;
+            font-weight: bold;
+        }
+        .annotation {
+            color: #ef4444;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            border-left: 2px solid #ef4444;
+            padding-left: 8px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-900 font-sans p-4 md:p-12 min-h-screen">
+
+    <div class="max-w-7xl mx-auto bg-white border border-gray-400 shadow-2xl rounded-xl overflow-hidden">
+        
+        <!-- Document Header -->
+        <div class="bg-slate-900 text-white p-8 md:p-12 border-b-8 border-blue-500">
+            <h1 class="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4">AiLM 实施手册</h1>
+            <h2 class="text-xl font-bold text-slate-400 mb-8">Detailed Implementation Specs (V4.1)</h2>
+            
+            <div class="bg-slate-800 p-6 rounded-lg border border-slate-700">
+                <p class="font-bold text-yellow-400 mb-2 uppercase text-sm">版本更新说明 (V4.1)：</p>
+                <ul class="list-disc list-inside text-sm text-slate-300 leading-relaxed font-mono">
+                    <li>新增：AutoML 内置算法详细参数表 (Algorithm Table)</li>
+                    <li>新增：关键页面 UI 仿真截图与标注 (UI Snapshots)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="p-8 md:p-12 space-y-24">
+
+            <!-- ========================================== -->
+            <!-- MODULE 1: AUTH & PERMISSIONS               -->
+            <!-- ========================================== -->
+            <section id="auth">
+                <div class="flex items-center gap-4 mb-8 border-b-2 border-slate-200 pb-4">
+                    <span class="bg-black text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded">01</span>
+                    <h2 class="text-3xl font-black text-slate-800">登录与鉴权 (Auth & RBAC)</h2>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-12">
+                    <!-- Login Logic -->
+                    <div>
+                        <h3 class="font-bold text-lg mb-4 text-blue-800">1.1 登录交互逻辑</h3>
+                        
+                        <!-- UI Snapshot for Login -->
+                        <div class="ui-snapshot mb-6">
+                            <div class="border border-gray-300 p-4 flex flex-col items-center gap-4">
+                                <div class="w-full border border-gray-300 p-2 text-gray-400 text-sm">name@company.com</div>
+                                <div class="w-full border border-red-500 p-2 text-black text-sm">123</div>
+                                <div class="text-red-500 text-xs self-start">⚠ 密码长度需大于4位</div>
+                                <div class="w-full bg-black text-white p-2 text-center text-sm font-bold opacity-50 cursor-not-allowed">登录中...</div>
+                            </div>
+                            <div class="annotation">前端需实现：输入校验失败时的红色边框提示 + 提交时的 Loading 禁用状态。</div>
+                        </div>
+
+                        <div class="bg-slate-50 border border-slate-300 p-6 rounded-lg text-sm space-y-4">
+                            <div>
+                                <span class="font-bold block mb-1">前端校验规则:</span>
+                                <ul class="list-disc list-inside text-slate-600 pl-2">
+                                    <li>Email: 必须符合正则 <code>/^\S+@\S+\.\S+$/</code>。</li>
+                                    <li>Password: 长度 > 4 位。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Specs -->
+                    <div>
+                        <h3 class="font-bold text-lg mb-4 text-blue-800">1.2 API 契约</h3>
+                        <div class="bg-slate-900 rounded-lg p-4 overflow-x-auto">
+                            <div class="flex justify-between text-xs text-slate-400 mb-2 font-mono">
+                                <span>POST /api/auth/login</span>
+                                <span>Content-Type: application/json</span>
+                            </div>
+                            <pre class="text-green-400 text-xs font-mono">
+// Request
+{
+  "email": "user@company.com",
+  "password": "password123"
+}
+
+// Response (200 OK)
+{
+  "token": "eyJhbGciOiJIUzI1...", // JWT Token
+  "user": {
+    "id": "u_123",
+    "email": "user@company.com",
+    "role": "Developer", // 关键: 用于前端鉴权
+    "avatar": "https://..."
+  }
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- MODULE 2: DATA SPACE                       -->
+            <!-- ========================================== -->
+            <section id="dataspace">
+                <div class="flex items-center gap-4 mb-8 border-b-2 border-slate-200 pb-4">
+                    <span class="bg-black text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded">02</span>
+                    <h2 class="text-3xl font-black text-slate-800">数据空间 (Data Space)</h2>
+                </div>
+
+                <div class="space-y-12">
+                    <!-- 2.1 Structured Data -->
+                    <div class="border border-slate-300 rounded-xl p-8 bg-white shadow-sm">
+                        <div class="flex items-center gap-3 mb-6">
+                             <div class="w-2 h-8 bg-green-500 rounded"></div>
+                             <h3 class="text-2xl font-bold">2.1 结构化数据解析逻辑</h3>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div>
+                                <div class="bg-slate-50 p-6 rounded border border-slate-200 mb-6">
+                                    <h4 class="font-bold mb-4 text-slate-800">后端处理流程 (Python)</h4>
+                                    <ol class="list-decimal list-inside text-sm text-slate-700 space-y-3 font-mono">
+                                        <li>
+                                            <strong>Receive File:</strong> 接收 multipart/form-data。
+                                        </li>
+                                        <li>
+                                            <strong>Load Data:</strong>
+                                            <div class="pl-5 mt-1 text-xs text-slate-500">
+                                                使用 <code>pandas.read_csv()</code> 或 <code>read_excel()</code>。
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <strong>Return Metadata:</strong> 返回行数、列名列表、前5行预览数据。
+                                        </li>
+                                    </ol>
+                                </div>
+                            </div>
+                            
+                            <!-- UI Snapshot -->
+                            <div>
+                                <div class="ui-snapshot">
+                                    <div class="flex items-center gap-2 border border-black p-3 bg-white mb-2">
+                                        <div class="w-8 h-8 bg-green-100 flex items-center justify-center">📄</div>
+                                        <div class="flex-1 text-xs">
+                                            <div class="font-bold">sales_data.csv</div>
+                                            <div class="text-gray-500">2.5 MB • 12,000 Rows</div>
+                                        </div>
+                                        <div class="text-green-600 font-bold text-xs">✔ Parsed</div>
+                                    </div>
+                                    <div class="bg-gray-100 p-2 text-xs font-mono text-gray-500 border border-gray-300">
+                                        Preview:<br>
+                                        Date, Sales, Region<br>
+                                        2023-01, 500, North<br>
+                                        ...
+                                    </div>
+                                    <div class="annotation">
+                                        上传成功后，必须立即展示文件名、行数和部分数据预览，让用户确认文件未乱码。
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2.2 KB Factory -->
+                    <div class="border border-slate-300 rounded-xl p-8 bg-white shadow-sm">
+                        <div class="flex items-center gap-3 mb-6">
+                             <div class="w-2 h-8 bg-blue-500 rounded"></div>
+                             <h3 class="text-2xl font-bold">2.2 知识库构建逻辑</h3>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-4 p-4 border rounded hover:bg-gray-50">
+                                <div class="font-bold text-lg text-slate-400">01</div>
+                                <div>
+                                    <h5 class="font-bold">上传与解析</h5>
+                                    <p class="text-xs text-slate-500">后端使用 <code>PyPDF2</code> 或 <code>Unstructured</code> 库提取纯文本。</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 p-4 border rounded hover:bg-gray-50 border-blue-200 bg-blue-50/30">
+                                <div class="font-bold text-lg text-blue-500">02</div>
+                                <div>
+                                    <h5 class="font-bold">文本切片 (Chunking) - 关键参数</h5>
+                                    <p class="text-xs text-slate-500">根据前端传入的 `chunk_size` (默认512)，使用 <code>RecursiveCharacterTextSplitter</code> 进行切分。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- MODULE 3: AUTOML ENGINE (CORE)             -->
+            <!-- ========================================== -->
+            <section id="automl">
+                <div class="flex items-center gap-4 mb-8 border-b-2 border-slate-200 pb-4">
+                    <span class="bg-black text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded">03</span>
+                    <h2 class="text-3xl font-black text-slate-800">AutoML 引擎 (核心实现)</h2>
+                </div>
+                
+                <!-- 3.3 Built-in Algorithms Table (NEW) -->
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <span class="text-slate-400">Step 3.</span> 内置算法详细规格表 (Built-in Algorithms)
+                    </h3>
+                    <p class="text-sm text-slate-600 mb-4">
+                        后端需预置以下 5 种算法模型。前端在“模型选择”步骤展示此列表。
+                    </p>
+                    
+                    <div class="overflow-x-auto border-2 border-slate-800 rounded-lg shadow-lg">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-900 text-white font-mono uppercase text-xs">
+                                <tr>
+                                    <th class="p-4 border-r border-slate-700">算法名称 (ID)</th>
+                                    <th class="p-4 border-r border-slate-700">类型</th>
+                                    <th class="p-4 border-r border-slate-700">Python 实现类 (Scikit-learn/XGB)</th>
+                                    <th class="p-4 border-r border-slate-700">适用场景 (When to use)</th>
+                                    <th class="p-4">默认超参数 (Hyperparams)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 bg-white">
+                                <tr class="hover:bg-yellow-50">
+                                    <td class="p-4 font-bold border-r">XGBoost<br><code class="text-xs text-gray-500">xgboost</code></td>
+                                    <td class="p-4 border-r">集成学习<br>(Boosting)</td>
+                                    <td class="p-4 font-mono text-xs border-r text-blue-600">xgboost.XGBRegressor<br>xgboost.XGBClassifier</td>
+                                    <td class="p-4 text-xs"><strong>首选推荐</strong>。精度最高，抗过拟合能力强，适合大多数结构化数据。</td>
+                                    <td class="p-4 font-mono text-xs text-gray-600">
+                                        n_estimators=100<br>
+                                        learning_rate=0.1<br>
+                                        max_depth=6
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-yellow-50">
+                                    <td class="p-4 font-bold border-r">LightGBM<br><code class="text-xs text-gray-500">lightgbm</code></td>
+                                    <td class="p-4 border-r">集成学习<br>(Boosting)</td>
+                                    <td class="p-4 font-mono text-xs border-r text-blue-600">lightgbm.LGBMRegressor<br>lightgbm.LGBMClassifier</td>
+                                    <td class="p-4 text-xs"><strong>大数据首选</strong>。速度极快，内存占用低，适合行数 > 10万 的数据。</td>
+                                    <td class="p-4 font-mono text-xs text-gray-600">
+                                        num_leaves=31<br>
+                                        learning_rate=0.05
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-yellow-50">
+                                    <td class="p-4 font-bold border-r">Random Forest<br><code class="text-xs text-gray-500">rf</code></td>
+                                    <td class="p-4 border-r">集成学习<br>(Bagging)</td>
+                                    <td class="p-4 font-mono text-xs border-r text-blue-600">sklearn.ensemble.<br>RandomForestRegressor</td>
+                                    <td class="p-4 text-xs">稳健，无需大量调参。适合作为基准模型 (Baseline)。</td>
+                                    <td class="p-4 font-mono text-xs text-gray-600">
+                                        n_estimators=100<br>
+                                        max_features='auto'
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-yellow-50">
+                                    <td class="p-4 font-bold border-r">Linear Regression<br><code class="text-xs text-gray-500">linear</code></td>
+                                    <td class="p-4 border-r">线性模型</td>
+                                    <td class="p-4 font-mono text-xs border-r text-blue-600">sklearn.linear_model.<br>LinearRegression</td>
+                                    <td class="p-4 text-xs"><strong>可解释性强</strong>。适合需要明确知道“每个特征增加1单位，结果增加多少”的场景。</td>
+                                    <td class="p-4 font-mono text-xs text-gray-600">
+                                        fit_intercept=True
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-yellow-50">
+                                    <td class="p-4 font-bold border-r">Decision Tree<br><code class="text-xs text-gray-500">dt</code></td>
+                                    <td class="p-4 border-r">树模型</td>
+                                    <td class="p-4 font-mono text-xs border-r text-blue-600">sklearn.tree.<br>DecisionTreeRegressor</td>
+                                    <td class="p-4 text-xs">简单直观，规则清晰。容易过拟合，一般用于教学演示。</td>
+                                    <td class="p-4 font-mono text-xs text-gray-600">
+                                        max_depth=None
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Step 1: Data Health Check -->
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <span class="text-slate-400">Step 1.</span> 数据体检逻辑 (Health Check)
+                    </h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <!-- UI Snapshot -->
+                            <div class="ui-snapshot mb-6">
+                                <div class="bg-red-50 border border-red-300 p-3 mb-2 flex gap-2">
+                                    <span class="text-red-500 font-bold">⚠</span>
+                                    <div class="text-xs text-red-700">
+                                        <strong>数据质量警告</strong><br>
+                                        检测到 "Age" 列有 150 个空值。
+                                    </div>
+                                    <button class="ml-auto bg-white border border-red-300 px-2 py-1 text-xs font-bold text-red-600">自动清洗</button>
+                                </div>
+                                <div class="bg-green-50 border border-green-300 p-3 flex gap-2 items-center">
+                                    <span class="text-green-500 font-bold">✔</span>
+                                    <div class="text-xs text-green-700">数据格式检查通过</div>
+                                </div>
+                                <div class="annotation">
+                                    根据 API 返回的 `status` 字段，动态渲染红/黄/绿警告条。
+                                </div>
+                            </div>
+
+                            <div class="border p-6 rounded-lg bg-white shadow-sm">
+                                <h4 class="font-bold text-lg mb-4">判定逻辑树 (Python伪代码)</h4>
+                                <pre class="text-xs font-mono bg-gray-50 p-4 border rounded text-slate-700 leading-relaxed">
+def check_data_quality(df):
+    row_count = len(df)
+    null_percentage = df.isnull().mean().max()
+
+    if row_count < 50:
+        return { "status": "CRITICAL", "msg": "行数不足50" }
+
+    if null_percentage > 0:
+        return { "status": "WARNING", "action": "ENABLE_AUTO_CLEAN" }
+
+    return { "status": "PASS" }</pre>
+                            </div>
+                        </div>
+                        <div class="border p-6 rounded-lg bg-white shadow-sm">
+                            <h4 class="font-bold text-lg mb-4">前端 UI 行为</h4>
+                            <ul class="list-disc list-inside space-y-3 text-sm text-slate-600">
+                                <li>
+                                    <span class="font-bold text-red-600">CRITICAL:</span> 
+                                    弹出红色警告框，禁用“下一步”按钮。
+                                </li>
+                                <li>
+                                    <span class="font-bold text-yellow-600">WARNING:</span> 
+                                    显示黄色提示条，并显示“自动清洗”按钮。
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Training -->
+                <div class="mb-12">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <span class="text-slate-400">Step 3.</span> 异步训练监控
+                    </h3>
+                    
+                    <!-- UI Snapshot -->
+                    <div class="ui-snapshot max-w-lg mb-6">
+                         <div class="text-center p-6">
+                             <h4 class="font-bold mb-4">正在训练模型...</h4>
+                             <div class="w-full h-4 bg-gray-200 rounded mb-2 overflow-hidden">
+                                 <div class="h-full bg-black w-2/3"></div>
+                             </div>
+                             <div class="text-right text-xs font-bold font-mono">67%</div>
+                             <div class="mt-4 bg-gray-900 text-green-400 p-2 text-xs font-mono text-left h-24 overflow-y-auto">
+                                 > Fold 1/5 complete...<br>
+                                 > XGBoost accuracy: 88.5%<br>
+                                 > Tuning hyperparameters...
+                             </div>
+                         </div>
+                         <div class="annotation">
+                             必须展示实时日志 (Logs) 和进度条。数据源自轮询接口 <code>GET /api/tasks/{id}</code>。
+                         </div>
+                    </div>
+                </div>
+
+            </section>
+
+             <!-- ========================================== -->
+            <!-- MODULE 4: AI STUDIO                        -->
+            <!-- ========================================== -->
+            <section id="aistudio">
+                <div class="flex items-center gap-4 mb-8 border-b-2 border-slate-200 pb-4">
+                    <span class="bg-black text-white text-xl font-bold w-12 h-12 flex items-center justify-center rounded">04</span>
+                    <h2 class="text-3xl font-black text-slate-800">AI Studio (Dify 集成)</h2>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                     <div class="border border-slate-300 p-6 rounded-lg bg-white">
+                         <h3 class="font-bold text-lg mb-4">连接器模式 (Connector Pattern)</h3>
+                         <p class="text-sm text-slate-600 mb-4">
+                             我们不自己开发 Chat 界面，而是直接复用 Dify 的 WebApp。
+                             <br>AI Studio 本质上是一个“快捷方式管理器”。
+                         </p>
+                         <ul class="list-disc list-inside text-sm text-slate-700 space-y-2">
+                             <li><strong>API Key 管理</strong>: 加密存储 Dify 的 API Key。</li>
+                             <li><strong>SSO 跳转</strong>: 点击按钮直接打开 Dify 对应 App 的页面。</li>
+                         </ul>
+                     </div>
+
+                     <div class="border border-slate-300 p-6 rounded-lg bg-white">
+                         <h3 class="font-bold text-lg mb-4">知识库同步 (Sync)</h3>
+                         <p class="text-sm text-slate-600 mb-4">
+                             当用户点击“同步到 Dify”时：
+                         </p>
+                         <ol class="list-decimal list-inside text-sm font-mono text-slate-700 bg-gray-50 p-4 rounded border">
+                             <li>后端调用 Dify API 创建 Dataset。</li>
+                             <li>后端上传本地 PDF 文件到 Dify。</li>
+                             <li>Dify 返回 dataset_id。</li>
+                             <li>我们将 dataset_id 存入本地数据库绑定。</li>
+                         </ol>
+                     </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+</body>
+</html>

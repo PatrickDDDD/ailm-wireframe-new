@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AiLM 平台 - 详细需求规格说明书 (Requirements)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+               brand: {
+                   50: '#f0f9ff',
+                   900: '#0c4a6e'
+               }
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-gray-50 text-slate-900 font-sans p-6 md:p-12 min-h-screen">
+
+    <div class="max-w-7xl mx-auto bg-white border border-gray-300 shadow-2xl p-8 md:p-16 rounded-xl">
+        
+        <!-- Header -->
+        <div class="border-b-4 border-slate-900 pb-8 mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-black tracking-tighter mb-2 text-slate-900">AiLM 平台</h1>
+                <p class="text-xl font-bold text-slate-600">企业级 AI 全生命周期管理系统</p>
+            </div>
+            <div class="text-right font-mono text-xs bg-yellow-50 text-yellow-900 p-4 rounded border border-yellow-200 shadow-sm max-w-md">
+                <p class="font-bold text-sm mb-1">版本: v4.0 (委外实施终极版)</p>
+                <p>适用方: 实施团队 (PM, Dev, QA)</p>
+                <p class="mt-2 text-yellow-800">⚠️ 重点提示：本文档包含大量 AI 业务逻辑解释，请务必逐字阅读，不要凭经验开发。</p>
+            </div>
+        </div>
+
+        <!-- 0. Glossary Section -->
+        <section class="mb-16">
+            <div class="bg-blue-50 border-l-8 border-blue-600 p-8 rounded-r-lg shadow-sm">
+                <h2 class="text-3xl font-black text-blue-900 mb-8 flex items-center gap-3">
+                    📚 第0章：AI 核心术语与开发映射 (Glossary)
+                </h2>
+                <p class="text-blue-800 mb-6 font-bold">
+                    为了确保大家在同一个频道沟通，我们将 AI 黑话翻译成了 Web 开发术语：
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Term 1 -->
+                    <div class="bg-white p-6 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xl font-black text-slate-900">AutoML (自动化机器学习)</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded font-mono font-bold">后台任务</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                            <strong>业务含义：</strong> 用户传一个 Excel，系统自己试一堆公式，找出一个能预测未来的公式。
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded text-xs font-mono text-blue-700 border border-gray-200">
+                            <strong>开发实现：</strong> 一个耗时 3-10 分钟的异步任务队列 (Celery)。<br>
+                            Input: .csv 文件<br>
+                            Process: Python (Pandas 清洗 -> Scikit-learn 训练)<br>
+                            Output: 模型文件(.pkl) + 评估指标(JSON)
+                        </div>
+                    </div>
+
+                    <!-- Term 2 -->
+                    <div class="bg-white p-6 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xl font-black text-slate-900">RAG (检索增强生成)</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded font-mono font-bold">搜索引擎</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                            <strong>业务含义：</strong> 让 ChatGPT 读懂公司内部文档。先把文档切碎存起来，用户提问时先搜相关片段，再发给 AI。
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded text-xs font-mono text-blue-700 border border-gray-200">
+                            <strong>开发实现：</strong> ETL 流程。<br>
+                            1. Extract: 读 PDF 提纯文本。<br>
+                            2. Chunk: 按 500 字切分字符串。<br>
+                            3. Embed: 调 OpenAI API 换回一组数字。<br>
+                            4. Load: 存入向量数据库 (Vector DB)。
+                        </div>
+                    </div>
+
+                    <!-- Term 3 -->
+                    <div class="bg-white p-6 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xl font-black text-slate-900">Epoch (训练轮数)</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded font-mono font-bold">循环次数</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                            <strong>业务含义：</strong> AI 学习整本教科书的次数。看的次数越多学得越好，但也越慢。
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded text-xs font-mono text-blue-700 border border-gray-200">
+                            <strong>开发实现：</strong> 进度条的分母。<br>
+                            如果 Epoch=100，当前跑到第 50 轮，前端进度条就是 50%。
+                        </div>
+                    </div>
+
+                     <!-- Term 4 -->
+                     <div class="bg-white p-6 rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xl font-black text-slate-900">Inference (推理)</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded font-mono font-bold">API 调用</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                            <strong>业务含义：</strong> 模型训练好后投入使用。给它输入（今天下雨），它输出预测（销量减少）。
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded text-xs font-mono text-blue-700 border border-gray-200">
+                            <strong>开发实现：</strong> 一个 Stateless 的 REST API。<br>
+                            Input: JSON { "weather": "rain" }<br>
+                            Output: JSON { "sales": 100 }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. Tech Stack -->
+        <section class="mb-16">
+             <h2 class="text-3xl font-black mb-8 pb-4 border-b-2 border-slate-200 text-slate-800">
+                01. 强制技术栈要求 (Mandatory Tech Stack)
+            </h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-slate-900 text-slate-200 p-8 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                        <span class="w-3 h-3 bg-green-500 rounded-full"></span> 后端 (Backend)
+                    </h3>
+                    <ul class="space-y-4 font-mono text-sm">
+                        <li class="flex items-start gap-3">
+                            <span class="text-green-400 font-bold w-24 shrink-0">Language:</span> 
+                            <span>Python 3.10+ (必须，因需调用 Scikit-learn/Pandas 生态)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-green-400 font-bold w-24 shrink-0">Web Fx:</span> 
+                            <span>FastAPI (推荐) 或 Django Ninja (高性能异步)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-green-400 font-bold w-24 shrink-0">Queue:</span> 
+                            <span>Redis + Celery (处理耗时训练任务)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-green-400 font-bold w-24 shrink-0">Storage:</span> 
+                            <span>PostgreSQL (业务数据) + MinIO (文件存储)</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white border-2 border-slate-200 p-8 rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span class="w-3 h-3 bg-blue-500 rounded-full"></span> 前端 (Frontend)
+                    </h3>
+                    <ul class="space-y-4 font-mono text-sm">
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-600 font-bold w-24 shrink-0">Core:</span> 
+                            <span>React 18+ (TypeScript)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-600 font-bold w-24 shrink-0">CSS:</span> 
+                            <span>Tailwind CSS (禁止手写 CSS 文件，必须用 Utility Class)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-600 font-bold w-24 shrink-0">Charts:</span> 
+                            <span>Recharts (必须使用此库绘制 AI 评估图表)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-600 font-bold w-24 shrink-0">Icons:</span> 
+                            <span>Lucide React</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Functional Requirements -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-black mb-10 pb-4 border-b-2 border-slate-200 text-slate-800">
+                02. 核心模块需求与验收标准
+            </h2>
+
+            <!-- Module 1 -->
+            <div class="mb-12">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg">1</div>
+                    <h3 class="text-2xl font-bold text-slate-800">RBAC 权限管理模块</h3>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-lg p-8 shadow-sm">
+                    <p class="mb-6 text-slate-600">系统不需要复杂的动态权限配置，只需要<strong>硬编码</strong>以下三种角色。</p>
+                    
+                    <div class="overflow-hidden border border-slate-200 rounded-lg mb-6">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-slate-100 font-bold text-slate-900">
+                                <tr>
+                                    <th class="p-4 border-r">角色 (Role)</th>
+                                    <th class="p-4 border-r">用户故事 (User Story)</th>
+                                    <th class="p-4">权限边界 (Acceptance Criteria)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <tr class="bg-red-50/50">
+                                    <td class="p-4 font-bold align-top">Super Admin<br>(超级管理员)</td>
+                                    <td class="p-4 border-r align-top text-slate-600">作为运维负责人，我需要能重置任何人的密码，配置全局的 OpenAI Key，并拥有所有数据的“上帝视角”。</td>
+                                    <td class="p-4 align-top">
+                                        <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                            <li>唯一能进入 <code>/permissions</code> 页面的角色。</li>
+                                            <li>唯一能配置系统级 API Key 的角色。</li>
+                                            <li>可以查看/删除所有人的项目。</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr class="bg-blue-50/50">
+                                    <td class="p-4 font-bold align-top">Leader<br>(领导/观察者)</td>
+                                    <td class="p-4 border-r align-top text-slate-600">作为部门领导，我不想操作复杂的模型训练，我只想看 Dashboard 上的报表和最终的模型准确率。不要给我展示可能会误操作的按钮。</td>
+                                    <td class="p-4 align-top">
+                                        <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                            <li><strong>只读权限</strong>：Dashboard, DataSpace, Model Result。</li>
+                                            <li><strong>隐形禁用</strong>：所有“新建”、“上传”、“删除”、“开始训练”按钮必须对他隐藏或禁用。</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                                <tr class="bg-green-50/50">
+                                    <td class="p-4 font-bold align-top">Developer<br>(开发者)</td>
+                                    <td class="p-4 border-r align-top text-slate-600">作为一线算法工程师，我需要上传数据，清洗数据，并反复尝试不同的模型训练任务。</td>
+                                    <td class="p-4 align-top">
+                                        <ul class="list-disc list-inside space-y-1 text-slate-700">
+                                            <li>可以创建项目。</li>
+                                            <li>可以上传、删除<strong>自己</strong>的文件。</li>
+                                            <li>可以启动 AutoML 训练任务。</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 2 -->
+            <div class="mb-12">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg">2</div>
+                    <h3 class="text-2xl font-bold text-slate-800">数据空间 (Data Space)</h3>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="bg-white border border-slate-200 p-8 rounded-lg shadow-sm">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded border border-green-200">A. 结构化数据</span>
+                            <span class="text-xs text-gray-500">For AutoML</span>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2">文件上传预处理</h4>
+                        <p class="text-sm text-slate-600 mb-4">用户上传 Excel/CSV 时，后端不能只存文件，必须立即做“体检”。</p>
+                        <div class="bg-gray-50 p-4 rounded border border-gray-200 text-sm space-y-2">
+                            <p class="font-bold text-slate-900">验收标准：</p>
+                            <ul class="list-decimal list-inside text-slate-700 space-y-1">
+                                <li>文件必须小于 200MB。</li>
+                                <li><strong>后端必须尝试读取前10行</strong> (Pandas read_csv/read_excel)。</li>
+                                <li>如果文件损坏或无法读取，直接报错拒绝上传。</li>
+                                <li>返回 `columns` (列名列表) 供前端预览。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 p-8 rounded-lg shadow-sm">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded border border-blue-200">B. 非结构化文档</span>
+                            <span class="text-xs text-gray-500">For RAG Knowledge Base</span>
+                        </div>
+                        <h4 class="font-bold text-lg mb-2">知识库流水线</h4>
+                        <p class="text-sm text-slate-600 mb-4">知识库不是文件夹，是一个处理流水线。</p>
+                        <div class="bg-gray-50 p-4 rounded border border-gray-200 text-sm space-y-2">
+                            <p class="font-bold text-slate-900">验收标准：</p>
+                            <ul class="list-decimal list-inside text-slate-700 space-y-1">
+                                <li>支持 PDF, DOCX, TXT 格式。</li>
+                                <li><strong>必须包含“分块”配置</strong>：用户可滑块选择 Chunk Size (如 512 tokens)。这决定了切片的粗细。</li>
+                                <li>状态流转：`Uploading` -> `Indexing` (后台切片+Embedding) -> `Active`。前端需轮询状态。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 3 -->
+            <div class="mb-12">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg">3</div>
+                    <h3 class="text-2xl font-bold text-slate-800">AutoML 引擎 (核心难点)</h3>
+                </div>
+                <div class="bg-white border border-slate-200 p-8 rounded-lg shadow-sm space-y-6">
+                    <p class="text-slate-600 leading-relaxed">
+                        这是系统的核心大脑。它模拟了一个数据科学家的工作流程：拿到数据 -> 检查质量 -> 清洗 -> 训练 -> 出报告。
+                        <br>
+                        <strong>核心原则：</strong> 后端通过 Celery 异步执行，前端通过 WebSocket 或 轮询 (Polling) 获取进度。
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                        <div class="border-2 border-slate-900 p-4 rounded bg-white">
+                            <div class="font-bold mb-2">Step 1: 检查</div>
+                            <div class="text-xs text-slate-500">空值检测<br>行数检查</div>
+                        </div>
+                        <div class="flex items-center justify-center text-slate-300">➜</div>
+                        <div class="border-2 border-slate-900 p-4 rounded bg-white">
+                            <div class="font-bold mb-2">Step 2: 清洗</div>
+                            <div class="text-xs text-slate-500">填补空值<br>删除重复</div>
+                        </div>
+                        <div class="flex items-center justify-center text-slate-300">➜</div>
+                        <div class="border-2 border-slate-900 p-4 rounded bg-black text-white shadow-lg">
+                            <div class="font-bold mb-2">Step 3: 训练</div>
+                            <div class="text-xs text-gray-400">异步队列<br>XGBoost/RF</div>
+                        </div>
+                        <div class="flex items-center justify-center text-slate-300">➜</div>
+                        <div class="border-2 border-slate-900 p-4 rounded bg-white">
+                            <div class="font-bold mb-2">Step 4: 报告</div>
+                            <div class="text-xs text-slate-500">准确率图表<br>特征重要性</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </div>
+
+</body>
+</html>
