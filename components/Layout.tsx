@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Database,
-  Shield // Imported Shield icon for permissions
+  Shield, // Imported Shield icon for permissions
+  Package
 } from 'lucide-react';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -22,6 +23,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const baseNavItems = [
     { label: '项目仪表盘', path: '/dashboard', icon: LayoutDashboard },
     { label: '数据空间', path: '/data-space', icon: Database },
+    { label: '模型仓库', path: '/model-registry', icon: Package },
     { label: '新建项目', path: '/new-project', icon: PlusCircle },
   ];
 

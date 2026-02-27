@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Package, CheckCircle2, TrendingUp, ArrowRight, UploadCloud, 
   FileSpreadsheet, AlertTriangle, Eraser, Play, Loader2, Check, ArrowLeft, Sparkles, Trophy,
-  BarChart3, PieChart, Activity, X, FileText, Cpu, Layers, Target, MousePointerClick
+  BarChart3, PieChart, Activity, X, FileText, Cpu, Layers, Target, MousePointerClick, Database
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -26,6 +26,13 @@ const MOCK_COLUMNS = [
     'Transaction_ID', 'Date', 'Region_Code', 'Product_Category', 
     'Sales_Amount', 'Units_Sold', 'Discount_Rate', 
     'Competitor_Price', 'Holiday_Flag', 'Temperature', 'Inventory_Level'
+];
+
+// Mock Data Space Files for Selection
+const DATA_SPACE_FILES = [
+    { id: 1, name: 'sales_q3_2023.csv', size: 2500 * 1024, date: '2023-10-01' },
+    { id: 2, name: 'inventory_levels_v2.xlsx', size: 4100 * 1024, date: '2023-10-05' },
+    { id: 3, name: 'customer_churn_data.csv', size: 1200 * 1024, date: '2023-11-12' },
 ];
 
 interface ModelResult {
@@ -193,7 +200,8 @@ export const AutoML: React.FC = () => {
   const [stage, setStage] = useState<WorkflowStage>(location.state?.stage || 'UPLOAD');
   
   // Workflow State
-  const [file, setFile] = useState<File | null>(null);
+  // We use "any" here for the file to accommodate both File objects and Mock Data Objects
+  const [file, setFile] = useState<any | null>(null);
   const [error, setError] = useState('');
   const [isCleaning, setIsCleaning] = useState(false);
   const [dataCleaned, setDataCleaned] = useState(false);
@@ -231,6 +239,18 @@ export const AutoML: React.FC = () => {
         return;
     }
     setFile(uploadedFile);
+  };
+
+  const handleDataSpaceSelect = (dataset: typeof DATA_SPACE_FILES[0]) => {
+      // Create a mock file object compatible with our UI needs
+      const mockFile = {
+          name: dataset.name,
+          size: dataset.size,
+          lastModified: new Date(dataset.date).getTime(),
+          type: dataset.name.endsWith('csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      };
+      setFile(mockFile);
+      setError('');
   };
 
   const startCleaning = () => {
@@ -360,7 +380,7 @@ export const AutoML: React.FC = () => {
 
   const renderStepper = () => {
       const steps: {id: WorkflowStage, label: string}[] = [
-          { id: 'UPLOAD', label: '上传数据' },
+          { id: 'UPLOAD', label: '导入数据' },
           { id: 'CLEANING', label: '数据清洗' },
           { id: 'TARGET_SETTING', label: '目标设定' },
           { id: 'SELECTION', label: '选择模型' },
@@ -407,38 +427,85 @@ export const AutoML: React.FC = () => {
           <div className="p-8 max-w-4xl mx-auto">
               {renderBackButton()}
               {renderStepper()}
-              <div className="bg-white border-2 border-black p-8 text-center min-h-[400px] flex flex-col items-center justify-center">
-                  <h2 className="text-2xl font-black uppercase mb-2">步骤 1: 上传训练数据</h2>
-                  <p className="text-gray-600 font-mono text-sm mb-8">支持 CSV, Excel (.xlsx) 格式。请确保包含表头。</p>
+              <div className="bg-white border-2 border-black p-8 text-center min-h-[400px]">
+                  <h2 className="text-2xl font-black uppercase mb-6">步骤 1: 导入训练数据</h2>
                   
-                  <label className="cursor-pointer group">
-                      <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} />
-                      <div className="w-64 h-48 border-2 border-black border-dashed flex flex-col items-center justify-center bg-gray-50 group-hover:bg-gray-100 transition-colors">
-                          <UploadCloud className="w-12 h-12 mb-4 text-black" />
-                          <span className="font-bold uppercase text-sm">点击选择文件</span>
+                  <div className="grid md:grid-cols-2 gap-8 text-left h-[320px]">
+                      {/* Left: Select from Data Space */}
+                      <div className="flex flex-col h-full">
+                          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                             <Database className="w-5 h-5 text-black" />
+                             <h3 className="font-bold uppercase text-sm">从数据空间选择</h3>
+                          </div>
+                          <div className="flex-1 border-2 border-black bg-gray-50 overflow-y-auto">
+                              {DATA_SPACE_FILES.map(dsFile => {
+                                  const isSelected = file?.name === dsFile.name;
+                                  return (
+                                      <div 
+                                        key={dsFile.id}
+                                        onClick={() => handleDataSpaceSelect(dsFile)}
+                                        className={`p-4 border-b border-gray-200 cursor-pointer transition-all flex items-center justify-between group
+                                            ${isSelected ? 'bg-black text-white hover:bg-black' : 'hover:bg-white'}
+                                        `}
+                                      >
+                                          <div className="flex items-center gap-3">
+                                              <FileSpreadsheet className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-gray-500'}`} />
+                                              <div>
+                                                  <p className="text-sm font-bold leading-tight">{dsFile.name}</p>
+                                                  <p className={`text-[10px] font-mono mt-1 ${isSelected ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                      {(dsFile.size/1024/1024).toFixed(2)} MB • {dsFile.date}
+                                                  </p>
+                                              </div>
+                                          </div>
+                                          {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                      </div>
+                                  );
+                              })}
+                          </div>
                       </div>
-                  </label>
+
+                      {/* Right: Upload Local */}
+                      <div className="flex flex-col h-full">
+                           <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                             <UploadCloud className="w-5 h-5 text-black" />
+                             <h3 className="font-bold uppercase text-sm">上传本地文件</h3>
+                          </div>
+                          <label className="cursor-pointer group flex-1">
+                              <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleFileUpload} />
+                              <div className={`h-full border-2 border-black border-dashed flex flex-col items-center justify-center transition-colors
+                                  ${file && !DATA_SPACE_FILES.find(f => f.name === file.name) ? 'bg-gray-100' : 'bg-white group-hover:bg-gray-50'}
+                              `}>
+                                  <UploadCloud className="w-12 h-12 mb-4 text-black" />
+                                  <span className="font-bold uppercase text-sm">点击选择文件</span>
+                                  <span className="text-xs text-gray-500 mt-2 font-mono">.csv, .xlsx, .xls</span>
+                              </div>
+                          </label>
+                      </div>
+                  </div>
 
                   {error && (
-                      <div className="mt-6 flex items-center gap-2 text-red-600 border border-red-500 bg-red-50 px-4 py-2">
+                      <div className="mt-6 flex items-center gap-2 text-red-600 border border-red-500 bg-red-50 px-4 py-2 text-left">
                           <AlertTriangle className="w-4 h-4" />
                           <span className="text-sm font-bold">{error}</span>
                       </div>
                   )}
 
                   {file && !error && (
-                      <div className="mt-6 w-full max-w-md">
-                          <div className="flex items-center gap-3 border-2 border-black p-3 bg-white">
+                      <div className="mt-6 flex items-center justify-between border-t-2 border-black pt-6 animate-in slide-in-from-bottom-2 fade-in">
+                          <div className="flex items-center gap-3">
                               <FileSpreadsheet className="w-6 h-6" />
-                              <div className="flex-1 text-left">
-                                  <p className="font-bold text-sm truncate">{file.name}</p>
-                                  <p className="text-xs text-gray-500 font-mono">{(file.size / 1024).toFixed(2)} KB</p>
+                              <div className="text-left">
+                                  <p className="font-bold text-sm">{file.name}</p>
+                                  <p className="text-xs text-gray-500 font-mono">
+                                      {(file.size / 1024 / 1024).toFixed(2)} MB 
+                                      {DATA_SPACE_FILES.find(f => f.name === file.name) && <span className="ml-2 bg-gray-200 px-1 text-[10px]">REMOTE</span>}
+                                  </p>
                               </div>
-                              <CheckCircle2 className="w-5 h-5 text-green-600" />
+                              <CheckCircle2 className="w-5 h-5 text-green-600 ml-2" />
                           </div>
                           <button 
                             onClick={() => setStage('CLEANING')}
-                            className="w-full mt-4 bg-black text-white border-2 border-black py-3 font-bold uppercase hover:bg-white hover:text-black transition-colors"
+                            className="bg-black text-white border-2 border-black px-8 py-3 font-bold uppercase hover:bg-white hover:text-black transition-colors"
                           >
                               解析并下一步
                           </button>

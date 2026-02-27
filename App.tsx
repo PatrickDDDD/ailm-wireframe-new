@@ -9,6 +9,8 @@ import { AutoML } from './pages/AutoML';
 import { AIStudio } from './pages/AIStudio';
 import { DataSpace } from './pages/DataSpace';
 import { Permissions } from './pages/Permissions';
+import { ModelRegistry } from './pages/ModelRegistry';
+import { ModelDetail } from './pages/ModelDetail';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useApp();
@@ -49,6 +51,18 @@ const AppRoutes: React.FC = () => {
             <Route path="/data-space" element={
                 <ProtectedRoute>
                     <DataSpace />
+                </ProtectedRoute>
+            } />
+
+            <Route path="/model-registry" element={
+                <ProtectedRoute>
+                    <ModelRegistry />
+                </ProtectedRoute>
+            } />
+
+            <Route path="/model-registry/:modelId" element={
+                <ProtectedRoute>
+                    <ModelDetail />
                 </ProtectedRoute>
             } />
             

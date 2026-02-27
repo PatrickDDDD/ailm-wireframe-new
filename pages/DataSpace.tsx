@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Database, FileText, Cpu, UploadCloud, 
   Layers, Settings, Search, CheckSquare, Square,
@@ -430,6 +431,12 @@ export const DataSpace: React.FC = () => {
 
   const renderModelRegistry = () => (
     <div className="animate-in fade-in duration-500">
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-black uppercase">模型仓库预览 (Preview)</h2>
+            <Link to="/model-registry" className="bg-black text-white px-6 py-2 border-2 border-black font-bold flex items-center gap-2 hover:bg-white hover:text-black transition-colors">
+                <ExternalLink className="w-5 h-5" /> 进入完整模型仓库
+            </Link>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Model List */}
             <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -770,7 +777,7 @@ export const DataSpace: React.FC = () => {
         <TabButton active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} icon={Database} label="数据资产 (Upload)" />
         <TabButton active={activeTab === 'kb'} onClick={() => setActiveTab('kb')} icon={Layers} label="知识库工厂" />
         <TabButton active={activeTab === 'iot'} onClick={() => setActiveTab('iot')} icon={Wifi} label="工业物联 (IoT Hub)" />
-        <TabButton active={activeTab === 'models'} onClick={() => setActiveTab('models')} icon={Box} label="模型仓库 (Registry)" />
+        <TabButton active={activeTab === 'models'} onClick={() => setActiveTab('models')} icon={Box} label="模型仓库 (Preview)" />
       </div>
 
       {/* Content Area */}
