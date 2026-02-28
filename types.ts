@@ -14,6 +14,7 @@ export interface Project {
   accuracy?: number; // For ML
   modelName?: string; // For LLM
   externalUrl?: string; // For Dify/External integration
+  difyType?: 'Chatbot' | 'Workflow' | 'Agent' | 'Text Generator'; // Specific Dify type
 }
 
 export interface User {

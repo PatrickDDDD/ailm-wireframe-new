@@ -30,14 +30,9 @@ export const Dashboard: React.FC = () => {
             } 
           });
       } else {
-          // Pass full context to AI Studio Management Page
-          navigate('/ai-studio', { 
-              state: { 
-                  projectUrl: project.externalUrl, 
-                  projectName: project.name,
-                  description: project.description,
-                  subProjectName: project.subProjectName
-              } 
+          // Navigate to AI Project Detail
+          navigate(`/ai-studio/${project.id}`, { 
+              state: project 
           });
       }
   };

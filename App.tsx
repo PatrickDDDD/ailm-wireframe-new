@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard';
 import { NewProject } from './pages/NewProject';
 import { AutoML } from './pages/AutoML';
 import { AIStudio } from './pages/AIStudio';
+import { AIProjectDetail } from './pages/AIProjectDetail';
 import { DataSpace } from './pages/DataSpace';
 import { Permissions } from './pages/Permissions';
 import { ModelRegistry } from './pages/ModelRegistry';
@@ -87,6 +88,12 @@ const AppRoutes: React.FC = () => {
             <Route path="/ai-studio" element={
                 <ProtectedRoute>
                     <AIStudio />
+                </ProtectedRoute>
+            } />
+
+            <Route path="/ai-studio/:projectId" element={
+                <ProtectedRoute>
+                    <AIProjectDetail />
                 </ProtectedRoute>
             } />
 
